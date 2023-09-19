@@ -1,0 +1,154 @@
+function generateCertificateID() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  
+  // Assuming "Score" is in column C (3rd column)
+  var score = sheet.getRange(lastRow, 3).getValue();
+
+  if (score >= 48) {
+    // Generates a unique ID
+    var certificateID = Utilities.getUuid();
+    
+    // Assuming "Certificate ID" is in column F (6th column)
+    sheet.getRange(lastRow, 20).setValue(certificateID);
+    
+    // After assigning the certificate ID, generate the PDF:
+    var userName = sheet.getRange(lastRow, 6).getValue();  // Assuming user name is in column 6
+    var date = sheet.getRange(lastRow, 1).getValue();      // Assuming timestamp is in column 1
+    var courseName = "Psy Science by Psoirée";
+    generatePDF(userName, date, courseName, certificateID);
+  }
+}
+
+function generatePDF(userName, date, courseName, certificateID) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  var url = "https://api.pdfcrowd.com/convert/latest/";
+
+  var base64Credentials = Utilities.base64Encode("raychristian:afa2218a9cb10ddce00366767b1f75a5");
+  var headers = {
+    "Authorization": "Basic " + base64Credentials,
+    "Content-Type": "application/x-www-form-urlencoded"
+  };
+
+  // Convert the raw timestamp into a readable date format
+  var formattedDate = Utilities.formatDate(new Date(date), "GMT+2", "MMMM dd, yyyy");
+
+  // Sample HTML template with placeholders.
+  var htmlTemplate = `
+    <html>
+<head>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        p {
+             font-size: 24px;
+        }
+
+        .content {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .header {
+            font-size: 48px;
+            font-weight: bold;
+            padding-top: 24px; 
+            padding-bottom: 24px;
+        }
+        .name {
+            font-size: 64px;
+            padding-top: 24px; 
+            padding-bottom: 24px; 
+        }
+        .bold-text {
+            font-weight: bold;
+        }
+
+        .certify-text, 
+        .completion-text {
+            font-size: 24px;
+         }
+    </style>
+
+</head>
+<body>
+    <div class="content">
+        <img src="https://static.wixstatic.com/media/4d3b6d_9a8391969e4444a29fcf745d3c589885~mv2.png" alt="Psoirée Logo" width="100">
+        <div class="header">Certificate of Completion</div>
+        <div class="certify-text">This is to certify that</div>
+        <div class="name">{{NAME}}</div>
+        <div class="completion-text">has successfully completed</div>
+        <div class="name">"Psy Science"</div>
+        <p><span class="bold-text">Date of Completion:</span> {{TIMESTAMP}}</p>
+        <p><span class="bold-text">Course Length:</span> 8 hours / 6 hours of pharmacy</p>
+        <p><span class="bold-text">Certificate ID:</span> {{CERTIFICATE_ID}}</p>
+        <div class="completion-text">www.psoiree.com</div>
+    </div>
+</body>
+</html>
+  `;
+
+  // Replace placeholders with actual data
+  var finalHtml = htmlTemplate.replace("{{NAME}}", userName)
+                              .replace("{{TIMESTAMP}}", formattedDate)
+                              .replace("{{CERTIFICATE_ID}}", certificateID);
+
+  // Pass the final HTML content to PDFcrowd
+  var payload = "text=" + encodeURIComponent(finalHtml) + "&orientation=landscape";
+
+  var options = {
+    "method": "post",
+    "headers": headers,
+    "payload": payload
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+
+  // Save the PDF to Google Drive
+  var blob = Utilities.newBlob(response.getContent(), 'application/pdf', userName + '-certificate.pdf');
+  var file = DriveApp.createFile(blob);
+  
+  // If you want to make the file viewable to anyone with the link
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  var pdfLink = file.getUrl();
+  Logger.log(pdfLink);
+
+  // Fetching the email address of the user:
+  var userEmail = sheet.getRange(lastRow, 2).getValue(); // Assuming email is in column 2
+
+  // Call the function to send the email:
+  sendEmailWithCertificateLink(userEmail, userName, pdfLink);
+
+  sheet.getRange(lastRow, 21).setValue(pdfLink);
+  return pdfLink;
+}
+
+
+function sendEmailWithCertificateLink(email, userName, pdfLink) {
+  var subject = "Your Psy Science Certificate";
+  var body = "Hello " + userName + ",\n\n" +
+             "Congratulations on completing the course! Here's your certificate: " + pdfLink + "\n\n" +
+             "Best Regards,\nPsoirée Team";
+  
+  GmailApp.sendEmail(email, subject, body);
+}
+
+// Thank you page webapp to see if user passed/failed and provide certificate if they passed
+function doGet(e) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var lastRow = sheet.getLastRow();
+    var score = sheet.getRange(lastRow, 3).getValue().split(" / ")[0]; // Assuming score is in column 3
+    var certificateLink = sheet.getRange(lastRow, 8).getValue(); // Assuming certificate link is in column 8
+
+    if (parseInt(score) >= 48) {
+        return ContentService.createTextOutput(JSON.stringify({status: "pass", link: certificateLink}))
+                             .setMimeType(ContentService.MimeType.JSON);
+    } else {
+        return ContentService.createTextOutput(JSON.stringify({status: "fail"}))
+                             .setMimeType(ContentService.MimeType.JSON);
+    }
+}
