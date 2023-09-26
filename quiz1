@@ -53,13 +53,14 @@ function generatePDF(userName, date, courseName, certificateID) {
             margin: 0 auto;
         }
         .header {
-            font-size: 48px;
+            font-size: 38px;
             font-weight: bold;
             padding-top: 24px; 
             padding-bottom: 24px;
         }
         .name {
-            font-size: 64px;
+            font-size: 54px;
+            font-weight: bold;
             padding-top: 24px; 
             padding-bottom: 24px; 
         }
@@ -83,7 +84,7 @@ function generatePDF(userName, date, courseName, certificateID) {
         <div class="completion-text">has successfully completed</div>
         <div class="name">"Psy Science"</div>
         <p><span class="bold-text">Date of Completion:</span> {{TIMESTAMP}}</p>
-        <p><span class="bold-text">Course Length:</span> 8 hours / 6 hours of pharmacy</p>
+        <p><span class="bold-text">Course Length:</span> 8 hours. Approved by the Oregon Board of Naturopathic Medicine for 8 general CE credits, of which 6 may be used for pharmacy, 0.5 for ethics, and 0.5 for cultural competency.</p>
         <p><span class="bold-text">Certificate ID:</span> {{CERTIFICATE_ID}}</p>
         <div class="completion-text">www.psoiree.com</div>
     </div>

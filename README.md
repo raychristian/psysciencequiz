@@ -1,9 +1,3 @@
-# psysciencequiz
-
-Certainly! Here's a draft for the README for the "PSY SCIENCE" repository:
-
----
-
 # Psy Science: Quiz & Certificate Generation
 
 ![Psoirée Logo](https://static.wixstatic.com/media/4d3b6d_9a8391969e4444a29fcf745d3c589885~mv2.png)
